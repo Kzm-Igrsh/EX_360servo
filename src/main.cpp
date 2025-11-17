@@ -13,8 +13,8 @@ const int SERVO3_PIN = 7;  // G7
 
 // 360°サーボの速度設定（マイクロ秒）
 const int SPEED_STOP = 1500;   // 停止（中立位置）
-const int SPEED_SLOW = 1700;   // 遅い回転（時計回り）
-const int SPEED_FAST = 1900;   // 速い回転（時計回り）
+const int SPEED_SLOW = 1650;   // 遅い回転（時計回り）
+const int SPEED_FAST = 3000;   // 速い回転（時計回り）
 
 // テスト設定
 const int ROTATE_TIME = 3000;  // 各速度で3秒回転
