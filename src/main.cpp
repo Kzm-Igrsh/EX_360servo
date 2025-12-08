@@ -18,11 +18,13 @@ const int SPEED_FAST = 3000;   // 速い回転（時計回り）
 
 // テスト設定
 const int ROTATE_TIME = 3000;  // 各速度で3秒回転
-const int PATTERN_ROTATE_TIME = 3000;  // 10パターンも3秒回転
-const int PATTERN_INTERVAL = 3000;  // 10パターンのインターバル3秒
 
 // 長押し判定時間（ミリ秒）
 const int LONG_PRESS_TIME = 1000;  // 1秒以上で長押し
+
+// 10パターンの動作時間（1000-3000ms）とインターバル（0-500ms）
+const int patternRotateTimes[10] = {2500, 1500, 2000, 1200, 2800, 1800, 2200, 1000, 2600, 1400};  // ms
+const int patternIntervals[10] = {400, 250, 150, 350, 50, 450, 200, 300, 0, 100};  // ms (0-500ms)
 
 void stopAllServos() {
   servo1.writeMicroseconds(SPEED_STOP);
@@ -124,8 +126,9 @@ void runAllTests() {
   delay(2000);
 }
 
-void executePattern(int servoNum, int speed, int moveNum) {
+void executePattern(int servoNum, int speed, int moveNum, int rotateTime, int intervalTime) {
   stopAllServos();
+  delay(100);
   
   Servo* targetServo;
   int pin;
@@ -157,14 +160,17 @@ void executePattern(int servoNum, int speed, int moveNum) {
   M5.Display.printf("Servo %d\n", servoNum);
   M5.Display.println(speedName);
   M5.Display.setTextSize(1);
-  M5.Display.printf("G%d:%dus", pin, speed);
+  M5.Display.printf("G%d:%dus\n", pin, speed);
+  M5.Display.printf("Time:%dms\n", rotateTime);
+  M5.Display.printf("Wait:%dms", intervalTime);
   
-  Serial.printf("Move %d/10: Servo%d G%d %s (%dus)\n", moveNum, servoNum, pin, speedName, speed);
+  Serial.printf("Move %d/10: Servo%d G%d %s (%dus) Time:%dms Wait:%dms\n", 
+                moveNum, servoNum, pin, speedName, speed, rotateTime, intervalTime);
   
   targetServo->writeMicroseconds(speed);
-  delay(PATTERN_ROTATE_TIME);  // 3秒回転
+  delay(rotateTime);
   targetServo->writeMicroseconds(SPEED_STOP);
-  delay(PATTERN_INTERVAL);  // 3秒インターバル
+  delay(intervalTime);
 }
 
 void run10Pattern() {
@@ -177,19 +183,17 @@ void run10Pattern() {
   
   Serial.println("\n=== 10 Pattern Fixed Sequence ===");
   
-  // 固定の10パターン（コンパイル時に決定）
-  // 全箇所×全速度を網羅 + 同じ場所で速度変更パターンあり
-  
-  executePattern(2, SPEED_SLOW, 1);   // Servo2 遅い
-  executePattern(1, SPEED_FAST, 2);   // Servo1 速い
-  executePattern(3, SPEED_SLOW, 3);   // Servo3 遅い
-  executePattern(1, SPEED_SLOW, 4);   // Servo1 遅い（速度変更パターン1回目）
-  executePattern(2, SPEED_FAST, 5);   // Servo2 速い
-  executePattern(3, SPEED_FAST, 6);   // Servo3 速い
-  executePattern(1, SPEED_FAST, 7);   // Servo1 速い（速度変更パターン2回目）
-  executePattern(3, SPEED_SLOW, 8);   // Servo3 遅い
-  executePattern(2, SPEED_SLOW, 9);   // Servo2 遅い
-  executePattern(2, SPEED_FAST, 10);  // Servo2 速い
+  // 固定の10パターン（順番と速度は固定、時間だけバラバラ）
+  executePattern(2, SPEED_SLOW, 1, patternRotateTimes[0], patternIntervals[0]);   // Servo2 遅い 2500ms / 400ms
+  executePattern(1, SPEED_FAST, 2, patternRotateTimes[1], patternIntervals[1]);   // Servo1 速い 1500ms / 250ms
+  executePattern(3, SPEED_SLOW, 3, patternRotateTimes[2], patternIntervals[2]);   // Servo3 遅い 2000ms / 150ms
+  executePattern(1, SPEED_SLOW, 4, patternRotateTimes[3], patternIntervals[3]);   // Servo1 遅い 1200ms / 350ms
+  executePattern(2, SPEED_FAST, 5, patternRotateTimes[4], patternIntervals[4]);   // Servo2 速い 2800ms / 50ms
+  executePattern(3, SPEED_FAST, 6, patternRotateTimes[5], patternIntervals[5]);   // Servo3 速い 1800ms / 450ms
+  executePattern(1, SPEED_FAST, 7, patternRotateTimes[6], patternIntervals[6]);   // Servo1 速い 2200ms / 200ms
+  executePattern(3, SPEED_SLOW, 8, patternRotateTimes[7], patternIntervals[7]);   // Servo3 遅い 1000ms / 300ms
+  executePattern(2, SPEED_SLOW, 9, patternRotateTimes[8], patternIntervals[8]);   // Servo2 遅い 2600ms / 0ms
+  executePattern(2, SPEED_FAST, 10, patternRotateTimes[9], patternIntervals[9]);  // Servo2 速い 1400ms / 100ms
   
   stopAllServos();
   
