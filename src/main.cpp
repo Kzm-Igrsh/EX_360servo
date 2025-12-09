@@ -2,19 +2,19 @@
 #include <ESP32Servo.h>
 
 // 3つのサーボ
-Servo servo1;
-Servo servo2;
-Servo servo3;
+Servo servoLeft;
+Servo servoCenter;
+Servo servoRight;
 
 // サーボピン
-const int SERVO1_PIN = 5;  // G5
-const int SERVO2_PIN = 6;  // G6
-const int SERVO3_PIN = 7;  // G7
+const int SERVO_LEFT_PIN = 5;    // G5 - Left
+const int SERVO_CENTER_PIN = 6;  // G6 - Center
+const int SERVO_RIGHT_PIN = 7;   // G7 - Right
 
 // 360°サーボの速度設定（マイクロ秒）
-const int SPEED_STOP = 1500;   // 停止（中立位置）
-const int SPEED_SLOW = 1650;   // 遅い回転（時計回り）
-const int SPEED_FAST = 3000;   // 速い回転（時計回り）
+const int SPEED_STOP = 1500;   // Stop
+const int SPEED_WEAK = 1650;   // Weak
+const int SPEED_STRONG = 3000; // Strong
 
 // テスト設定
 const int ROTATE_TIME = 3000;  // 各速度で3秒回転
@@ -27,65 +27,65 @@ const int patternRotateTimes[10] = {2500, 1500, 2000, 1200, 2800, 1800, 2200, 10
 const int patternIntervals[10] = {400, 250, 150, 350, 50, 450, 200, 300, 0, 100};  // ms (0-500ms)
 
 void stopAllServos() {
-  servo1.writeMicroseconds(SPEED_STOP);
-  servo2.writeMicroseconds(SPEED_STOP);
-  servo3.writeMicroseconds(SPEED_STOP);
+  servoLeft.writeMicroseconds(SPEED_STOP);
+  servoCenter.writeMicroseconds(SPEED_STOP);
+  servoRight.writeMicroseconds(SPEED_STOP);
 }
 
-void testServoSpeed(Servo &servo, int servoNum, int pin) {
+void testServoSpeed(Servo &servo, const char* position, int pin) {
   M5.Display.clear();
   M5.Display.setCursor(0, 0);
   M5.Display.setTextSize(2);
-  M5.Display.printf("Servo %d\n", servoNum);
+  M5.Display.printf("%s\n", position);
   M5.Display.println("");
   M5.Display.setTextSize(1);
   M5.Display.printf("Pin: G%d\n", pin);
   M5.Display.println("");
   
-  Serial.printf("=== Servo%d G%d Test ===\n", servoNum, pin);
+  Serial.printf("=== %s G%d Test ===\n", position, pin);
   
-  // 停止
+  // Stop
   servo.writeMicroseconds(SPEED_STOP);
   M5.Display.fillRect(0, 80, 128, 48, BLACK);
   M5.Display.setCursor(0, 80);
   M5.Display.setTextSize(2);
-  M5.Display.println("STOP");
+  M5.Display.println("Stop");
   M5.Display.setTextSize(1);
   M5.Display.printf("%dus", SPEED_STOP);
-  Serial.printf("Speed: STOP (%dus)\n", SPEED_STOP);
+  Serial.printf("Speed: Stop (%dus)\n", SPEED_STOP);
   delay(2000);
   
-  // 遅い回転
-  servo.writeMicroseconds(SPEED_SLOW);
+  // Weak
+  servo.writeMicroseconds(SPEED_WEAK);
   M5.Display.fillRect(0, 80, 128, 48, BLACK);
   M5.Display.setCursor(0, 80);
   M5.Display.setTextSize(2);
-  M5.Display.println("SLOW");
+  M5.Display.println("Weak");
   M5.Display.setTextSize(1);
-  M5.Display.printf("%dus", SPEED_SLOW);
-  Serial.printf("Speed: SLOW (%dus)\n", SPEED_SLOW);
+  M5.Display.printf("%dus", SPEED_WEAK);
+  Serial.printf("Speed: Weak (%dus)\n", SPEED_WEAK);
   delay(ROTATE_TIME);
   
-  // 速い回転
-  servo.writeMicroseconds(SPEED_FAST);
+  // Strong
+  servo.writeMicroseconds(SPEED_STRONG);
   M5.Display.fillRect(0, 80, 128, 48, BLACK);
   M5.Display.setCursor(0, 80);
   M5.Display.setTextSize(2);
-  M5.Display.println("FAST");
+  M5.Display.println("Strong");
   M5.Display.setTextSize(1);
-  M5.Display.printf("%dus", SPEED_FAST);
-  Serial.printf("Speed: FAST (%dus)\n", SPEED_FAST);
+  M5.Display.printf("%dus", SPEED_STRONG);
+  Serial.printf("Speed: Strong (%dus)\n", SPEED_STRONG);
   delay(ROTATE_TIME);
   
-  // 停止
+  // Stop
   servo.writeMicroseconds(SPEED_STOP);
   M5.Display.fillRect(0, 80, 128, 48, BLACK);
   M5.Display.setCursor(0, 80);
   M5.Display.setTextSize(2);
-  M5.Display.println("STOP");
+  M5.Display.println("Stop");
   M5.Display.setTextSize(1);
   M5.Display.printf("%dus", SPEED_STOP);
-  Serial.printf("Speed: STOP (%dus)\n", SPEED_STOP);
+  Serial.printf("Speed: Stop (%dus)\n", SPEED_STOP);
   delay(1000);
 }
 
@@ -99,16 +99,16 @@ void runAllTests() {
   
   Serial.println("=== Starting Full Servo Test ===");
   
-  // Servo 1 (G5)
-  testServoSpeed(servo1, 1, SERVO1_PIN);
+  // Left (G5)
+  testServoSpeed(servoLeft, "Left", SERVO_LEFT_PIN);
   delay(500);
   
-  // Servo 2 (G6)
-  testServoSpeed(servo2, 2, SERVO2_PIN);
+  // Center (G6)
+  testServoSpeed(servoCenter, "Center", SERVO_CENTER_PIN);
   delay(500);
   
-  // Servo 3 (G7)
-  testServoSpeed(servo3, 3, SERVO3_PIN);
+  // Right (G7)
+  testServoSpeed(servoRight, "Right", SERVO_RIGHT_PIN);
   delay(500);
   
   Serial.println("=== Full Test Complete ===");
@@ -126,29 +126,25 @@ void runAllTests() {
   delay(2000);
 }
 
-void executePattern(int servoNum, int speed, int moveNum, int rotateTime, int intervalTime) {
+void executePattern(const char* position, int speed, int moveNum, int rotateTime, int intervalTime) {
   stopAllServos();
   delay(100);
   
   Servo* targetServo;
   int pin;
   
-  switch(servoNum) {
-    case 1:
-      targetServo = &servo1;
-      pin = SERVO1_PIN;
-      break;
-    case 2:
-      targetServo = &servo2;
-      pin = SERVO2_PIN;
-      break;
-    case 3:
-      targetServo = &servo3;
-      pin = SERVO3_PIN;
-      break;
+  if (strcmp(position, "Left") == 0) {
+    targetServo = &servoLeft;
+    pin = SERVO_LEFT_PIN;
+  } else if (strcmp(position, "Center") == 0) {
+    targetServo = &servoCenter;
+    pin = SERVO_CENTER_PIN;
+  } else {
+    targetServo = &servoRight;
+    pin = SERVO_RIGHT_PIN;
   }
   
-  const char* speedName = (speed == SPEED_SLOW) ? "SLOW" : "FAST";
+  const char* strengthName = (speed == SPEED_WEAK) ? "Weak" : "Strong";
   
   M5.Display.clear();
   M5.Display.setCursor(0, 0);
@@ -157,20 +153,37 @@ void executePattern(int servoNum, int speed, int moveNum, int rotateTime, int in
   M5.Display.println("==============");
   M5.Display.println("");
   M5.Display.setTextSize(2);
-  M5.Display.printf("Servo %d\n", servoNum);
-  M5.Display.println(speedName);
+  M5.Display.printf("%s\n", position);
+  M5.Display.printf("%s\n", strengthName);
   M5.Display.setTextSize(1);
   M5.Display.printf("G%d:%dus\n", pin, speed);
   M5.Display.printf("Time:%dms\n", rotateTime);
   M5.Display.printf("Wait:%dms", intervalTime);
   
-  Serial.printf("Move %d/10: Servo%d G%d %s (%dus) Time:%dms Wait:%dms\n", 
-                moveNum, servoNum, pin, speedName, speed, rotateTime, intervalTime);
+  Serial.printf("Move %d/10: %s G%d %s (%dus) Time:%dms Wait:%dms\n", 
+                moveNum, position, pin, strengthName, speed, rotateTime, intervalTime);
   
   targetServo->writeMicroseconds(speed);
   delay(rotateTime);
   targetServo->writeMicroseconds(SPEED_STOP);
-  delay(intervalTime);
+  
+  // インターバル中は「None」を表示
+  if (intervalTime > 0) {
+    M5.Display.clear();
+    M5.Display.setCursor(0, 0);
+    M5.Display.setTextSize(1);
+    M5.Display.printf("Move %d/10\n", moveNum);
+    M5.Display.println("==============");
+    M5.Display.println("");
+    M5.Display.setTextSize(2);
+    M5.Display.println("None");
+    M5.Display.println("");
+    M5.Display.setTextSize(1);
+    M5.Display.printf("Wait:%dms", intervalTime);
+    
+    Serial.printf("  Interval: None (Wait:%dms)\n", intervalTime);
+    delay(intervalTime);
+  }
 }
 
 void run10Pattern() {
@@ -184,16 +197,16 @@ void run10Pattern() {
   Serial.println("\n=== 10 Pattern Fixed Sequence ===");
   
   // 固定の10パターン（順番と速度は固定、時間だけバラバラ）
-  executePattern(2, SPEED_SLOW, 1, patternRotateTimes[0], patternIntervals[0]);   // Servo2 遅い 2500ms / 400ms
-  executePattern(1, SPEED_FAST, 2, patternRotateTimes[1], patternIntervals[1]);   // Servo1 速い 1500ms / 250ms
-  executePattern(3, SPEED_SLOW, 3, patternRotateTimes[2], patternIntervals[2]);   // Servo3 遅い 2000ms / 150ms
-  executePattern(1, SPEED_SLOW, 4, patternRotateTimes[3], patternIntervals[3]);   // Servo1 遅い 1200ms / 350ms
-  executePattern(2, SPEED_FAST, 5, patternRotateTimes[4], patternIntervals[4]);   // Servo2 速い 2800ms / 50ms
-  executePattern(3, SPEED_FAST, 6, patternRotateTimes[5], patternIntervals[5]);   // Servo3 速い 1800ms / 450ms
-  executePattern(1, SPEED_FAST, 7, patternRotateTimes[6], patternIntervals[6]);   // Servo1 速い 2200ms / 200ms
-  executePattern(3, SPEED_SLOW, 8, patternRotateTimes[7], patternIntervals[7]);   // Servo3 遅い 1000ms / 300ms
-  executePattern(2, SPEED_SLOW, 9, patternRotateTimes[8], patternIntervals[8]);   // Servo2 遅い 2600ms / 0ms
-  executePattern(2, SPEED_FAST, 10, patternRotateTimes[9], patternIntervals[9]);  // Servo2 速い 1400ms / 100ms
+  executePattern("Center", SPEED_WEAK, 1, patternRotateTimes[0], patternIntervals[0]);   // Center Weak 2500ms / 400ms
+  executePattern("Left", SPEED_STRONG, 2, patternRotateTimes[1], patternIntervals[1]);   // Left Strong 1500ms / 250ms
+  executePattern("Right", SPEED_WEAK, 3, patternRotateTimes[2], patternIntervals[2]);    // Right Weak 2000ms / 150ms
+  executePattern("Left", SPEED_WEAK, 4, patternRotateTimes[3], patternIntervals[3]);     // Left Weak 1200ms / 350ms
+  executePattern("Center", SPEED_STRONG, 5, patternRotateTimes[4], patternIntervals[4]); // Center Strong 2800ms / 50ms
+  executePattern("Right", SPEED_STRONG, 6, patternRotateTimes[5], patternIntervals[5]);  // Right Strong 1800ms / 450ms
+  executePattern("Left", SPEED_STRONG, 7, patternRotateTimes[6], patternIntervals[6]);   // Left Strong 2200ms / 200ms
+  executePattern("Right", SPEED_WEAK, 8, patternRotateTimes[7], patternIntervals[7]);    // Right Weak 1000ms / 300ms
+  executePattern("Center", SPEED_WEAK, 9, patternRotateTimes[8], patternIntervals[8]);   // Center Weak 2600ms / 0ms
+  executePattern("Center", SPEED_STRONG, 10, patternRotateTimes[9], patternIntervals[9]);// Center Strong 1400ms / 100ms
   
   stopAllServos();
   
@@ -220,17 +233,17 @@ void setup() {
   Serial.println("3x360 Servo Auto Test");
   
   // サーボ初期化
-  Serial.printf("Init Servo1: Pin=%d\n", SERVO1_PIN);
-  servo1.attach(SERVO1_PIN);
-  servo1.writeMicroseconds(SPEED_STOP);
+  Serial.printf("Init Left Servo: Pin=%d\n", SERVO_LEFT_PIN);
+  servoLeft.attach(SERVO_LEFT_PIN);
+  servoLeft.writeMicroseconds(SPEED_STOP);
   
-  Serial.printf("Init Servo2: Pin=%d\n", SERVO2_PIN);
-  servo2.attach(SERVO2_PIN);
-  servo2.writeMicroseconds(SPEED_STOP);
+  Serial.printf("Init Center Servo: Pin=%d\n", SERVO_CENTER_PIN);
+  servoCenter.attach(SERVO_CENTER_PIN);
+  servoCenter.writeMicroseconds(SPEED_STOP);
   
-  Serial.printf("Init Servo3: Pin=%d\n", SERVO3_PIN);
-  servo3.attach(SERVO3_PIN);
-  servo3.writeMicroseconds(SPEED_STOP);
+  Serial.printf("Init Right Servo: Pin=%d\n", SERVO_RIGHT_PIN);
+  servoRight.attach(SERVO_RIGHT_PIN);
+  servoRight.writeMicroseconds(SPEED_STOP);
   
   Serial.println("Servo Init Complete");
   
@@ -240,13 +253,15 @@ void setup() {
   M5.Display.println("3x360 Servo Test");
   M5.Display.println("================");
   M5.Display.println("");
-  M5.Display.println("Short press:");
-  M5.Display.println(" Full test");
+  M5.Display.setTextSize(2);
+  M5.Display.println("None");
   M5.Display.println("");
-  M5.Display.println("Long press:");
-  M5.Display.println(" 10x pattern");
-  M5.Display.println("");
-  M5.Display.println("Press to start");
+  M5.Display.setTextSize(1);
+  M5.Display.println("Short: Full test");
+  M5.Display.println("Long: 10x pattern");
+  
+  Serial.println("\nShort press: Full test");
+  Serial.println("Long press: 10x pattern\n");
 }
 
 void loop() {
@@ -274,6 +289,20 @@ void loop() {
       Serial.printf("Short press detected (%lums)\n", pressDuration);
       runAllTests();
     }
+    
+    // テスト完了後、Noneを表示
+    M5.Display.clear();
+    M5.Display.setTextSize(1);
+    M5.Display.setCursor(0, 0);
+    M5.Display.println("3x360 Servo Test");
+    M5.Display.println("================");
+    M5.Display.println("");
+    M5.Display.setTextSize(2);
+    M5.Display.println("None");
+    M5.Display.println("");
+    M5.Display.setTextSize(1);
+    M5.Display.println("Short: Full test");
+    M5.Display.println("Long: 10x pattern");
   }
   
   delay(10);
