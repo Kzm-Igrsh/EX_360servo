@@ -26,6 +26,14 @@ const int LONG_PRESS_TIME = 1000;  // 1秒以上で長押し
 const int patternRotateTimes[10] = {2500, 1500, 2000, 1200, 2800, 1800, 2200, 1000, 2600, 1400};  // ms
 const int patternIntervals[10] = {400, 250, 150, 350, 50, 450, 200, 300, 0, 100};  // ms (0-500ms)
 
+// ========================================
+// シリアル通信用ヘルパー関数
+// PC側のPython GUIが期待する厳密なフォーマットで出力
+// ========================================
+void sendStimMessage(const char* position, const char* strength) {
+  Serial.printf("%s,%s\n", position, strength);
+}
+
 void stopAllServos() {
   servoLeft.writeMicroseconds(SPEED_STOP);
   servoCenter.writeMicroseconds(SPEED_STOP);
@@ -42,8 +50,6 @@ void testServoSpeed(Servo &servo, const char* position, int pin) {
   M5.Display.printf("Pin: G%d\n", pin);
   M5.Display.println("");
   
-  Serial.printf("=== %s G%d Test ===\n", position, pin);
-  
   // Stop
   servo.writeMicroseconds(SPEED_STOP);
   M5.Display.fillRect(0, 80, 128, 48, BLACK);
@@ -52,10 +58,10 @@ void testServoSpeed(Servo &servo, const char* position, int pin) {
   M5.Display.println("Stop");
   M5.Display.setTextSize(1);
   M5.Display.printf("%dus", SPEED_STOP);
-  Serial.printf("Speed: Stop (%dus)\n", SPEED_STOP);
   delay(2000);
   
-  // Weak
+  // Weak - 刺激開始メッセージ送信
+  sendStimMessage(position, "Weak");
   servo.writeMicroseconds(SPEED_WEAK);
   M5.Display.fillRect(0, 80, 128, 48, BLACK);
   M5.Display.setCursor(0, 80);
@@ -63,10 +69,15 @@ void testServoSpeed(Servo &servo, const char* position, int pin) {
   M5.Display.println("Weak");
   M5.Display.setTextSize(1);
   M5.Display.printf("%dus", SPEED_WEAK);
-  Serial.printf("Speed: Weak (%dus)\n", SPEED_WEAK);
   delay(ROTATE_TIME);
   
-  // Strong
+  // Weak終了 - インターバル開始
+  servo.writeMicroseconds(SPEED_STOP);
+  sendStimMessage("none", "none");
+  delay(1000);
+  
+  // Strong - 刺激開始メッセージ送信
+  sendStimMessage(position, "Strong");
   servo.writeMicroseconds(SPEED_STRONG);
   M5.Display.fillRect(0, 80, 128, 48, BLACK);
   M5.Display.setCursor(0, 80);
@@ -74,18 +85,17 @@ void testServoSpeed(Servo &servo, const char* position, int pin) {
   M5.Display.println("Strong");
   M5.Display.setTextSize(1);
   M5.Display.printf("%dus", SPEED_STRONG);
-  Serial.printf("Speed: Strong (%dus)\n", SPEED_STRONG);
   delay(ROTATE_TIME);
   
-  // Stop
+  // Strong終了 - Stop
   servo.writeMicroseconds(SPEED_STOP);
+  sendStimMessage("none", "none");
   M5.Display.fillRect(0, 80, 128, 48, BLACK);
   M5.Display.setCursor(0, 80);
   M5.Display.setTextSize(2);
   M5.Display.println("Stop");
   M5.Display.setTextSize(1);
   M5.Display.printf("%dus", SPEED_STOP);
-  Serial.printf("Speed: Stop (%dus)\n", SPEED_STOP);
   delay(1000);
 }
 
@@ -96,8 +106,6 @@ void runAllTests() {
   M5.Display.println("Starting");
   M5.Display.println("Full Test");
   delay(1000);
-  
-  Serial.println("=== Starting Full Servo Test ===");
   
   // Left (G5)
   testServoSpeed(servoLeft, "Left", SERVO_LEFT_PIN);
@@ -110,8 +118,6 @@ void runAllTests() {
   // Right (G7)
   testServoSpeed(servoRight, "Right", SERVO_RIGHT_PIN);
   delay(500);
-  
-  Serial.println("=== Full Test Complete ===");
   
   M5.Display.clear();
   M5.Display.setCursor(0, 0);
@@ -146,6 +152,7 @@ void executePattern(const char* position, int speed, int moveNum, int rotateTime
   
   const char* strengthName = (speed == SPEED_WEAK) ? "Weak" : "Strong";
   
+  // 画面表示
   M5.Display.clear();
   M5.Display.setCursor(0, 0);
   M5.Display.setTextSize(1);
@@ -160,15 +167,22 @@ void executePattern(const char* position, int speed, int moveNum, int rotateTime
   M5.Display.printf("Time:%dms\n", rotateTime);
   M5.Display.printf("Wait:%dms", intervalTime);
   
-  Serial.printf("Move %d/20: %s G%d %s (%dus) Time:%dms Wait:%dms\n", 
-                moveNum, position, pin, strengthName, speed, rotateTime, intervalTime);
+  // ========================================
+  // 刺激開始 - PC側へメッセージ送信
+  // ========================================
+  sendStimMessage(position, strengthName);
   
+  // モーター駆動
   targetServo->writeMicroseconds(speed);
   delay(rotateTime);
   targetServo->writeMicroseconds(SPEED_STOP);
   
-  // インターバル中は「None」を表示
+  // ========================================
+  // インターバル開始 - "none,none" を送信
+  // ========================================
   if (intervalTime > 0) {
+    sendStimMessage("none", "none");
+    
     M5.Display.clear();
     M5.Display.setCursor(0, 0);
     M5.Display.setTextSize(1);
@@ -181,8 +195,10 @@ void executePattern(const char* position, int speed, int moveNum, int rotateTime
     M5.Display.setTextSize(1);
     M5.Display.printf("Wait:%dms", intervalTime);
     
-    Serial.printf("  Interval: None (Wait:%dms)\n", intervalTime);
     delay(intervalTime);
+  } else {
+    // インターバルが0msの場合も "none,none" を送信
+    sendStimMessage("none", "none");
   }
 }
 
@@ -193,8 +209,6 @@ void run20Pattern() {
   M5.Display.println("Starting");
   M5.Display.println("20x Pattern");
   delay(1000);
-  
-  Serial.println("\n=== 20 Pattern Fixed Sequence ===");
   
   // 1~10回目
   executePattern("Center", SPEED_WEAK, 1, patternRotateTimes[0], patternIntervals[0]);   // Center Weak 2500ms / 400ms
@@ -222,8 +236,6 @@ void run20Pattern() {
   
   stopAllServos();
   
-  Serial.println("=== 20 Pattern Complete ===\n");
-  
   M5.Display.clear();
   M5.Display.setCursor(0, 0);
   M5.Display.setTextSize(2);
@@ -241,24 +253,20 @@ void setup() {
   auto cfg = M5.config();
   M5.begin(cfg);
   
+  // シリアル通信初期化（115200bps）
   Serial.begin(115200);
-  Serial.println("3x360 Servo Auto Test");
   
   // サーボ初期化
-  Serial.printf("Init Left Servo: Pin=%d\n", SERVO_LEFT_PIN);
   servoLeft.attach(SERVO_LEFT_PIN);
   servoLeft.writeMicroseconds(SPEED_STOP);
   
-  Serial.printf("Init Center Servo: Pin=%d\n", SERVO_CENTER_PIN);
   servoCenter.attach(SERVO_CENTER_PIN);
   servoCenter.writeMicroseconds(SPEED_STOP);
   
-  Serial.printf("Init Right Servo: Pin=%d\n", SERVO_RIGHT_PIN);
   servoRight.attach(SERVO_RIGHT_PIN);
   servoRight.writeMicroseconds(SPEED_STOP);
   
-  Serial.println("Servo Init Complete");
-  
+  // 初期画面表示
   M5.Display.clear();
   M5.Display.setTextSize(1);
   M5.Display.setCursor(0, 0);
@@ -271,9 +279,6 @@ void setup() {
   M5.Display.setTextSize(1);
   M5.Display.println("Short: Full test");
   M5.Display.println("Long: 20x pattern");
-  
-  Serial.println("\nShort press: Full test");
-  Serial.println("Long press: 20x pattern\n");
 }
 
 void loop() {
@@ -294,11 +299,9 @@ void loop() {
     
     if (pressDuration >= LONG_PRESS_TIME) {
       // 長押し：20パターン実行
-      Serial.printf("Long press detected (%lums)\n", pressDuration);
       run20Pattern();
     } else {
       // 短押し：フルテスト実行
-      Serial.printf("Short press detected (%lums)\n", pressDuration);
       runAllTests();
     }
     
